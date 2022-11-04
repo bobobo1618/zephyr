@@ -436,42 +436,6 @@ static const struct ssd1306_config ssd1306_config = {
 	.reset = GPIO_DT_SPEC_INST_GET_OR(0, reset_gpios, { 0 })
 };
 
-static int ssd1306_re_init(const struct device *dev)
-{
-	LOG_DBG("ssd1306 oled re-init now");
-
-	// Note: uncoment below for full re-init
-	//return ssd1306_init(dev);
-
-	// Note: Below list is minimal working set experimentally:
-
-	if (ssd1306_set_charge_pump(dev)) {
-		return -EIO;
-	}
-
-	uint8_t cmd_buf[] = {
-		SSD1306_SET_ENTIRE_DISPLAY_OFF,
-#ifdef CONFIG_SSD1306_REVERSE_MODE
-		SSD1306_SET_REVERSE_DISPLAY,
-#else
-		SSD1306_SET_NORMAL_DISPLAY,
-#endif
-	};
-
-	if (ssd1306_write_bus(dev, cmd_buf, sizeof(cmd_buf), true)) {
-		LOG_ERR("ssd1306_write_bus");
-		return -EIO;
-	}
-
-	if (ssd1306_set_contrast(dev, CONFIG_SSD1306_DEFAULT_CONTRAST)) {
-		return -EIO;
-	}
-
-	ssd1306_resume(dev);
-
-	return 0;
-}
-
 static int ext_power_status = true;
 
 static int ssd1306_update_ext_power(const struct device *dev, bool ext_power_status_new_value) {
@@ -503,7 +467,7 @@ static int ssd1306_update_ext_power(const struct device *dev, bool ext_power_sta
 			k_sleep(K_MSEC(30));
 
 			// re-init oled, sends commands through i2c bus
-			ssd1306_re_init(dev);
+			ssd1306_init(dev);
 		} else {
 			// no-op for now
 		}
