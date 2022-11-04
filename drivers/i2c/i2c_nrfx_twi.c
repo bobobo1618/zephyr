@@ -223,11 +223,6 @@ static int i2c_nrfx_twi_update_ext_power(const struct device *dev, bool ext_powe
 			const struct i2c_nrfx_twi_config *config = dev->config;
 			nrfx_twi_uninit(&config->twi);
 			init_twi(dev);
-			// if (get_dev_data(dev)->dev_config) {
-			// 	i2c_nrfx_twi_configure(
-			// 		dev,
-			// 		get_dev_data(dev)->dev_config);
-			// }
 		}
 	} else {
 		if (initialized) {
