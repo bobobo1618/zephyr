@@ -199,12 +199,29 @@ static int i2c_nrfx_twi_recover_bus(const struct device *dev)
 
 static int initialized = false;
 
+static int init_twi(const struct device *dev)
+{
+	const struct i2c_nrfx_twi_config *config = dev->config;
+	struct i2c_nrfx_twi_data *dev_data = dev->data;
+	nrfx_err_t result = nrfx_twi_init(&config->twi, &config->config,
+					  event_handler, dev_data);
+	if (result != NRFX_SUCCESS) {
+		LOG_ERR("Failed to initialize device: %s",
+			    dev->name);
+		return -EBUSY;
+	}
+
+	initialized = true;
+	return 0;
+}
+
 static int i2c_nrfx_twi_update_ext_power(const struct device *dev, bool ext_power_enabled) {
 	LOG_WRN("I2C update_ext_power now");
 	if(ext_power_enabled) {
 		LOG_WRN("New state power on, re-init");
 		if (!initialized) {
-			nrfx_twi_uninit(&get_dev_config(dev)->twi);
+			const struct i2c_nrfx_twi_config *config = dev->config;
+			nrfx_twi_uninit(&config->twi);
 			init_twi(dev);
 			// if (get_dev_data(dev)->dev_config) {
 			// 	i2c_nrfx_twi_configure(
@@ -226,22 +243,6 @@ static const struct i2c_driver_api i2c_nrfx_twi_driver_api = {
 	.transfer    = i2c_nrfx_twi_transfer,
 	.recover_bus = i2c_nrfx_twi_recover_bus,
 };
-
-static int init_twi(const struct device *dev)
-{
-	const struct i2c_nrfx_twi_config *config = dev->config;
-	struct i2c_nrfx_twi_data *dev_data = dev->data;
-	nrfx_err_t result = nrfx_twi_init(&config->twi, &config->config,
-					  event_handler, dev_data);
-	if (result != NRFX_SUCCESS) {
-		LOG_ERR("Failed to initialize device: %s",
-			    dev->name);
-		return -EBUSY;
-	}
-
-	initialized = true;
-	return 0;
-}
 
 #ifdef CONFIG_PM_DEVICE
 static int twi_nrfx_pm_action(const struct device *dev,

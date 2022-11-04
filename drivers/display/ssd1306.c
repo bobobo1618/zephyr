@@ -441,40 +441,41 @@ static int ssd1306_re_init(const struct device *dev)
 	LOG_DBG("ssd1306 oled re-init now");
 
 	// Note: uncoment below for full re-init
-	return ssd1306_init(dev);
+	//return ssd1306_init(dev);
 
 	// Note: Below list is minimal working set experimentally:
 
-// 	if (ssd1306_set_charge_pump(dev)) {
-// 		return -EIO;
-// 	}
+	if (ssd1306_set_charge_pump(dev)) {
+		return -EIO;
+	}
 
-// 	uint8_t cmd_buf[] = {
-// 		SSD1306_SET_ENTIRE_DISPLAY_OFF,
-// #ifdef CONFIG_SSD1306_REVERSE_MODE
-// 		SSD1306_SET_REVERSE_DISPLAY,
-// #else
-// 		SSD1306_SET_NORMAL_DISPLAY,
-// #endif
-// 	};
+	uint8_t cmd_buf[] = {
+		SSD1306_SET_ENTIRE_DISPLAY_OFF,
+#ifdef CONFIG_SSD1306_REVERSE_MODE
+		SSD1306_SET_REVERSE_DISPLAY,
+#else
+		SSD1306_SET_NORMAL_DISPLAY,
+#endif
+	};
 
-// 	if (ssd1306_write_bus(dev, cmd_buf, sizeof(cmd_buf), true)) {
-// 		LOG_ERR("ssd1306_write_bus");
-// 		return -EIO;
-// 	}
+	if (ssd1306_write_bus(dev, cmd_buf, sizeof(cmd_buf), true)) {
+		LOG_ERR("ssd1306_write_bus");
+		return -EIO;
+	}
 
-// 	if (ssd1306_set_contrast(dev, CONFIG_SSD1306_DEFAULT_CONTRAST)) {
-// 		return -EIO;
-// 	}
+	if (ssd1306_set_contrast(dev, CONFIG_SSD1306_DEFAULT_CONTRAST)) {
+		return -EIO;
+	}
 
-// 	ssd1306_resume(dev);
+	ssd1306_resume(dev);
 
-// 	return 0;
+	return 0;
 }
 
 static int ext_power_status = true;
 
 static int ssd1306_update_ext_power(const struct device *dev, bool ext_power_status_new_value) {
+	const struct ssd1306_config *config = dev->config;
 
 	// minimum sleep needed when waking up
 	if (ext_power_status_new_value == true) {
@@ -483,9 +484,8 @@ static int ssd1306_update_ext_power(const struct device *dev, bool ext_power_sta
 
 	// first update to I2C
 	if (dev->data != NULL) {
-		struct ssd1306_data *driver = dev->data;
-		if (driver->bus != NULL) {
-			if(i2c_update_ext_power(driver->bus, ext_power_status_new_value)) {
+		if (config->bus.bus != NULL) {
+			if(i2c_update_ext_power(config->bus.bus, ext_power_status_new_value)) {
 				LOG_ERR("Failed i2c_update_ext_power!");
 				return -EIO;
 			}
