@@ -63,6 +63,8 @@ LOG_MODULE_REGISTER(main);
 
 static int lsdir(const char *path);
 #ifdef CONFIG_FS_SAMPLE_CREATE_SOME_ENTRIES
+#define BUF_TO_WRITE_SIZE 512
+static const char buf_to_write[BUF_TO_WRITE_SIZE];
 static bool create_some_entries(const char *base_path)
 {
 	char path[MAX_PATH];
@@ -83,21 +85,33 @@ static bool create_some_entries(const char *base_path)
 	path[base] = 0;
 	strcat(&path[base], SOME_FILE_NAME);
 
-	if (fs_open(&file, path, FS_O_CREATE) != 0) {
+	if (fs_open(&file, path, FS_O_CREATE | FS_O_TRUNC | FS_O_WRITE) != 0) {
 		LOG_ERR("Failed to create file %s", path);
 		return false;
 	}
+
+	for (int x = 0; x < 1024; x++) {
+		int ret = fs_write(&file, buf_to_write, BUF_TO_WRITE_SIZE);
+		if (ret < 0) {
+			LOG_ERR("Failed to write: %d", ret);
+			return false;
+		} else if (ret < BUF_TO_WRITE_SIZE) {
+			LOG_ERR("Incomplete write: %d/%d", ret, BUF_TO_WRITE_SIZE);
+			return false;
+		}
+	}
+
 	fs_close(&file);
 
-	path[base] = 0;
-	strcat(&path[base], SOME_DIR_NAME);
+	// path[base] = 0;
+	// strcat(&path[base], SOME_DIR_NAME);
 
-	if (fs_mkdir(path) != 0) {
-		LOG_ERR("Failed to create dir %s", path);
-		/* If code gets here, it has at least successes to create the
-		 * file so allow function to return true.
-		 */
-	}
+	// if (fs_mkdir(path) != 0) {
+	// 	LOG_ERR("Failed to create dir %s", path);
+	// 	/* If code gets here, it has at least successes to create the
+	// 	 * file so allow function to return true.
+	// 	 */
+	// }
 	return true;
 }
 #endif
@@ -161,18 +175,20 @@ int main(void)
 			return res;
 		}
 
-		if (lsdir(disk_mount_pt) == 0) {
+		// if (lsdir(disk_mount_pt) == 0) {
 #ifdef CONFIG_FS_SAMPLE_CREATE_SOME_ENTRIES
 			if (create_some_entries(disk_mount_pt)) {
 				lsdir(disk_mount_pt);
 			}
 #endif
-		}
+		// }
 	} else {
 		printk("Error mounting disk.\n");
 	}
 
 	fs_unmount(&mp);
+
+	printk("Finished.");
 
 	while (1) {
 		k_sleep(K_MSEC(1000));
